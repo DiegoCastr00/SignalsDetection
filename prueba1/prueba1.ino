@@ -3,9 +3,9 @@
 #include <WebServer.h>
 
 // Configuración WiFi
-const char* ssid = "INFINITUMFE49";
-const char* password = "VpG2DNv9Vg";
-
+const char* ssid = "Realme12";
+const char* password = "y6p2rd78";
+  
 // Pines ESP32-CAM
 #define PWDN_GPIO_NUM     32
 #define RESET_GPIO_NUM    -1
@@ -25,14 +25,17 @@ const char* password = "VpG2DNv9Vg";
 #define PCLK_GPIO_NUM     22
 
 // Pines para el módulo L298N
-const int PIN_IN1 = 13;  // Motor A
-const int PIN_IN2 = 15;
+const int PIN_IN1 = 15;  // Motor A
+const int PIN_IN2 = 13;
 const int PIN_IN3 = 14;  // Motor B
 const int PIN_IN4 = 2;
 const int PIN_ENA = 12;   // Enable Motor A
-const int PIN_ENB = 4;    // Enable Motor B
-const int VELOCIDAD = 40; // Velocidad de los motores (0-255)
-const int VELOCIDAD_GIRO = 100; // Velocidad para giros
+const int PIN_ENB = 4;   // Enable Motor B
+
+const int LED_PIN = 33;
+
+// Velocidad de los motores (0-255)
+const int VELOCIDAD = 40;
 
 // Variables globales
 WebServer server(80);
@@ -41,6 +44,9 @@ unsigned long lastCommandTime = 0;
 
 void setupMotores() {
   // Configurar pines de motores como salidas
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
+  // Configurar pines como salidas
   pinMode(PIN_IN1, OUTPUT);
   pinMode(PIN_IN2, OUTPUT);
   pinMode(PIN_IN3, OUTPUT);
@@ -53,46 +59,55 @@ void setupMotores() {
 }
 
 void adelante() {
+ // Motor A adelante
   digitalWrite(PIN_IN1, HIGH);
   digitalWrite(PIN_IN2, LOW);
   analogWrite(PIN_ENA, VELOCIDAD);
   
+  // Motor B adelante
   digitalWrite(PIN_IN3, HIGH);
   digitalWrite(PIN_IN4, LOW);
   analogWrite(PIN_ENB, VELOCIDAD);
 }
 
 void atras() {
+  // Motor A atrás
   digitalWrite(PIN_IN1, LOW);
   digitalWrite(PIN_IN2, HIGH);
   analogWrite(PIN_ENA, VELOCIDAD);
   
+  // Motor B atrás
   digitalWrite(PIN_IN3, LOW);
   digitalWrite(PIN_IN4, HIGH);
   analogWrite(PIN_ENB, VELOCIDAD);
 }
 
 void izquierda() {
+  // Motor A adelante
   digitalWrite(PIN_IN1, HIGH);
   digitalWrite(PIN_IN2, LOW);
-  analogWrite(PIN_ENA, VELOCIDAD_GIRO);
+  analogWrite(PIN_ENA, 80);
   
+  // Motor B atrás
   digitalWrite(PIN_IN3, LOW);
   digitalWrite(PIN_IN4, HIGH);
-  analogWrite(PIN_ENB, VELOCIDAD_GIRO);
+  analogWrite(PIN_ENB, 10);
 }
 
 void derecha() {
-  digitalWrite(PIN_IN1, LOW);
-  digitalWrite(PIN_IN2, HIGH);
-  analogWrite(PIN_ENA, VELOCIDAD_GIRO);
-  
+  // Motor A atrás
+  digitalWrite(PIN_IN1, HIGH);  // Cambiado de LOW a HIGH
+  digitalWrite(PIN_IN2, LOW);   // Cambiado de HIGH a LOW
+  analogWrite(PIN_ENA, 10);
+ 
+  // Motor B adelante
   digitalWrite(PIN_IN3, HIGH);
   digitalWrite(PIN_IN4, LOW);
-  analogWrite(PIN_ENB, VELOCIDAD_GIRO);
+  analogWrite(PIN_ENB, 80);
 }
 
 void detener() {
+  // Detener ambos motores
   digitalWrite(PIN_IN1, LOW);
   digitalWrite(PIN_IN2, LOW);
   digitalWrite(PIN_IN3, LOW);
@@ -160,24 +175,38 @@ void executeCommand(String cmd) {
     if (cmd == "up") {
         Serial.println("Acción: Moviendo hacia adelante");
         adelante();
+        delay(1000);
+
     }
     else if (cmd == "down") {
         Serial.println("Acción: Moviendo hacia atrás");
         atras();
+        delay(1000);
+
     }
     else if (cmd == "left") {
         Serial.println("Acción: Girando a la izquierda");
-        izquierda();
+        derecha();
+        delay(1000);
+
     }
     else if (cmd == "right") {
         Serial.println("Acción: Girando a la derecha");
-        derecha();
+        izquierda();
+        delay(1000);
+
     }
     else if (cmd == "stop") {
         Serial.println("Acción: Deteniendo movimiento");
         detener();
+        delay(1000);
     }
-    
+    else if (cmd == "no signal") {
+        Serial.println("Acción: Deteniendo movimiento");
+        detener();
+        delay(1000);
+
+    }
     lastCommandTime = millis();
 }
 
