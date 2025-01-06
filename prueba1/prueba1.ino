@@ -24,10 +24,82 @@ const char* password = "VpG2DNv9Vg";
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
+// Pines para el módulo L298N
+const int PIN_IN1 = 13;  // Motor A
+const int PIN_IN2 = 15;
+const int PIN_IN3 = 14;  // Motor B
+const int PIN_IN4 = 2;
+const int PIN_ENA = 12;   // Enable Motor A
+const int PIN_ENB = 4;    // Enable Motor B
+const int VELOCIDAD = 40; // Velocidad de los motores (0-255)
+const int VELOCIDAD_GIRO = 100; // Velocidad para giros
+
 // Variables globales
 WebServer server(80);
 String currentCommand = "stop";
 unsigned long lastCommandTime = 0;
+
+void setupMotores() {
+  // Configurar pines de motores como salidas
+  pinMode(PIN_IN1, OUTPUT);
+  pinMode(PIN_IN2, OUTPUT);
+  pinMode(PIN_IN3, OUTPUT);
+  pinMode(PIN_IN4, OUTPUT);
+  pinMode(PIN_ENA, OUTPUT);
+  pinMode(PIN_ENB, OUTPUT);
+  
+  // Inicialmente detenido
+  detener();
+}
+
+void adelante() {
+  digitalWrite(PIN_IN1, HIGH);
+  digitalWrite(PIN_IN2, LOW);
+  analogWrite(PIN_ENA, VELOCIDAD);
+  
+  digitalWrite(PIN_IN3, HIGH);
+  digitalWrite(PIN_IN4, LOW);
+  analogWrite(PIN_ENB, VELOCIDAD);
+}
+
+void atras() {
+  digitalWrite(PIN_IN1, LOW);
+  digitalWrite(PIN_IN2, HIGH);
+  analogWrite(PIN_ENA, VELOCIDAD);
+  
+  digitalWrite(PIN_IN3, LOW);
+  digitalWrite(PIN_IN4, HIGH);
+  analogWrite(PIN_ENB, VELOCIDAD);
+}
+
+void izquierda() {
+  digitalWrite(PIN_IN1, HIGH);
+  digitalWrite(PIN_IN2, LOW);
+  analogWrite(PIN_ENA, VELOCIDAD_GIRO);
+  
+  digitalWrite(PIN_IN3, LOW);
+  digitalWrite(PIN_IN4, HIGH);
+  analogWrite(PIN_ENB, VELOCIDAD_GIRO);
+}
+
+void derecha() {
+  digitalWrite(PIN_IN1, LOW);
+  digitalWrite(PIN_IN2, HIGH);
+  analogWrite(PIN_ENA, VELOCIDAD_GIRO);
+  
+  digitalWrite(PIN_IN3, HIGH);
+  digitalWrite(PIN_IN4, LOW);
+  analogWrite(PIN_ENB, VELOCIDAD_GIRO);
+}
+
+void detener() {
+  digitalWrite(PIN_IN1, LOW);
+  digitalWrite(PIN_IN2, LOW);
+  digitalWrite(PIN_IN3, LOW);
+  digitalWrite(PIN_IN4, LOW);
+  analogWrite(PIN_ENA, 0);
+  analogWrite(PIN_ENB, 0);
+}
 
 void startCamera() {
   camera_config_t config;
@@ -52,8 +124,7 @@ void startCamera() {
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
   
-  // Configuración para imágenes más pequeñas
-  config.frame_size = FRAMESIZE_QVGA; // 320x240
+  config.frame_size = FRAMESIZE_QVGA;
   config.jpeg_quality = 12;
   config.fb_count = 1;
 
@@ -88,21 +159,23 @@ void executeCommand(String cmd) {
     
     if (cmd == "up") {
         Serial.println("Acción: Moviendo hacia adelante");
+        adelante();
     }
     else if (cmd == "down") {
         Serial.println("Acción: Moviendo hacia atrás");
+        atras();
     }
     else if (cmd == "left") {
         Serial.println("Acción: Girando a la izquierda");
+        izquierda();
     }
     else if (cmd == "right") {
         Serial.println("Acción: Girando a la derecha");
+        derecha();
     }
     else if (cmd == "stop") {
         Serial.println("Acción: Deteniendo movimiento");
-    }
-    else if (cmd == "no signal") {
-        Serial.println("Acción: Deteniendo movimiento");
+        detener();
     }
     
     lastCommandTime = millis();
@@ -126,6 +199,10 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\nIniciando ESP32-CAM Robot");
   
+  // Inicializar motores
+  setupMotores();
+  Serial.println("Motores inicializados");
+  
   WiFi.begin(ssid, password);
   Serial.print("Conectando a WiFi");
   while (WiFi.status() != WL_CONNECTED) {
@@ -139,7 +216,6 @@ void setup() {
   startCamera();
   Serial.println("Cámara inicializada");
 
-  // Configurar rutas del servidor
   server.on("/capture", HTTP_GET, handleCapture);
   server.on("/cmd", HTTP_GET, handleCommand);
   server.on("/getcmd", HTTP_GET, handleGetCommand);
