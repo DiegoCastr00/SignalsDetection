@@ -27,6 +27,7 @@ const char* password = "VpG2DNv9Vg";
 // Variables globales
 WebServer server(80);
 String currentCommand = "stop";
+unsigned long lastCommandTime = 0;
 
 void startCamera() {
   camera_config_t config;
@@ -77,13 +78,41 @@ void handleCapture() {
   esp_camera_fb_return(fb);
 }
 
+void executeCommand(String cmd) {
+    Serial.println("--------------------");
+    Serial.print("Comando recibido: ");
+    Serial.println(cmd);
+    Serial.print("Tiempo desde último comando: ");
+    Serial.print((millis() - lastCommandTime) / 1000.0);
+    Serial.println(" segundos");
+    
+    if (cmd == "up") {
+        Serial.println("Acción: Moviendo hacia adelante");
+    }
+    else if (cmd == "down") {
+        Serial.println("Acción: Moviendo hacia atrás");
+    }
+    else if (cmd == "left") {
+        Serial.println("Acción: Girando a la izquierda");
+    }
+    else if (cmd == "right") {
+        Serial.println("Acción: Girando a la derecha");
+    }
+    else if (cmd == "stop") {
+        Serial.println("Acción: Deteniendo movimiento");
+    }
+    else if (cmd == "no signal") {
+        Serial.println("Acción: Deteniendo movimiento");
+    }
+    
+    lastCommandTime = millis();
+}
+
 void handleCommand() {
   if (server.hasArg("cmd")) {
     currentCommand = server.arg("cmd");
+    executeCommand(currentCommand);
     server.send(200, "text/plain", "Command received: " + currentCommand);
-    
-    // Aquí puedes agregar la lógica para controlar el carrito
-    // basado en currentCommand (up, down, left, right, stop)
   } else {
     server.send(400, "text/plain", "No command received");
   }
@@ -95,16 +124,20 @@ void handleGetCommand() {
 
 void setup() {
   Serial.begin(115200);
+  Serial.println("\nIniciando ESP32-CAM Robot");
   
   WiFi.begin(ssid, password);
+  Serial.print("Conectando a WiFi");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("\nWiFi connected");
-  Serial.println("IP address: " + WiFi.localIP().toString());
+  Serial.println("\nWiFi conectado");
+  Serial.print("Dirección IP: ");
+  Serial.println(WiFi.localIP());
 
   startCamera();
+  Serial.println("Cámara inicializada");
 
   // Configurar rutas del servidor
   server.on("/capture", HTTP_GET, handleCapture);
@@ -112,6 +145,8 @@ void setup() {
   server.on("/getcmd", HTTP_GET, handleGetCommand);
   
   server.begin();
+  Serial.println("Servidor web iniciado");
+  Serial.println("\nEsperando comandos...");
 }
 
 void loop() {
