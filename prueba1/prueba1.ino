@@ -3,8 +3,8 @@
 #include <WebServer.h>
 
 // Configuración WiFi
-const char* ssid = "Realme12";
-const char* password = "y6p2rd78";
+const char* ssid = "INFINITUM";
+const char* password = "TAymyAfGx5";
   
 // Pines ESP32-CAM
 #define PWDN_GPIO_NUM     32
@@ -139,9 +139,11 @@ void startCamera() {
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
   
-  config.frame_size = FRAMESIZE_QVGA;
-  config.jpeg_quality = 12;
-  config.fb_count = 1;
+  config.frame_size = FRAMESIZE_VGA;
+  config.jpeg_quality = 20;
+  config.fb_count = 2;
+  config.grab_mode = CAMERA_GRAB_LATEST; // Tomar siempre el frame más reciente
+
 
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
@@ -157,9 +159,13 @@ void handleCapture() {
     return;
   }
 
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.sendHeader("Connection", "close");
   server.setContentLength(fb->len);
   server.send(200, "image/jpeg", "");
-  server.sendContent((const char*)fb->buf, fb->len);
+  
+  WiFiClient client = server.client();
+  client.write(fb->buf, fb->len);
   
   esp_camera_fb_return(fb);
 }
@@ -181,30 +187,27 @@ void executeCommand(String cmd) {
     else if (cmd == "down") {
         Serial.println("Acción: Moviendo hacia atrás");
         atras();
-        delay(1000);
-
+        delay(100);
     }
     else if (cmd == "left") {
         Serial.println("Acción: Girando a la izquierda");
         derecha();
-        delay(1000);
-
+        delay(100);
     }
     else if (cmd == "right") {
         Serial.println("Acción: Girando a la derecha");
         izquierda();
-        delay(1000);
-
+        delay(100);
     }
     else if (cmd == "stop") {
         Serial.println("Acción: Deteniendo movimiento");
         detener();
-        delay(1000);
+        delay(100);
     }
     else if (cmd == "no signal") {
         Serial.println("Acción: Deteniendo movimiento");
         detener();
-        delay(1000);
+        delay(100);
 
     }
     lastCommandTime = millis();
